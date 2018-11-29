@@ -1,0 +1,113 @@
+
+```{r }
+title: "Reproducible Research: Peer Assessment 1"
+output: 
+  md_document
+html_document:
+    self_contained: no
+```{r }
+Read in the Data Set
+```{r activitydata, echo=TRUE}
+activity <- read.csv("~/Documents/Course5Week2/activity.csv")
+```
+
+What is the Total Number of Steps Taken Per Day?
+```{r ,echo=TRUE}
+totalsteps<-sum(activity$steps,na.rm=TRUE)
+print(totalsteps)
+sumdate<-aggregate(steps ~ date, activity, sum)
+hist(sumdate$steps,main="Frequency of Total Number of Steps Per Day",xlab="Steps")
+meansteps<-aggregate(steps ~ date, activity, mean)
+print(meansteps)
+mediansteps<-aggregate(steps ~ date, activity, median)
+print(mediansteps)
+```
+
+What is the Average Daily Activity Pattern?
+```{r ,echo=TRUE}
+AverageStepsPerInterval<-aggregate(steps ~ interval, activity, mean)
+plot(AverageStepsPerInterval$interval,AverageStepsPerInterval$steps,type="l",main="Average Number of Steps Per Time Interval",xlab="Interval",ylab="Steps")
+maxsteps<-max(AverageStepsPerInterval$steps)
+maxinterval<-AverageStepsPerInterval$interval[AverageStepsPerInterval$steps==maxsteps]
+print(maxinterval)
+```
+
+
+Imputing Missing Values
+```{r , echo=TRUE}
+totalNAs<-sum(is.na(activity$steps))
+print(totalNAs)
+##My strategy is to use the 5 minute interval means to fill in the NA values in the steps column of the activity table
+meaninterval<-aggregate(steps ~ interval, activity, mean)
+##I decided to use intervals instead of dates because there were missing dates when calculating the aggregate mean of dates
+noNAsactivity<-activity
+for(i in 1:nrow(noNAsactivity)){
+  if (is.na(noNAsactivity[i,1])){
+    noNAsactivity[i,1] <- meaninterval[which(noNAsactivity$interval[i]==meaninterval$interval),2]
+  }
+}
+sumdate2<-aggregate(steps ~ date, noNAsactivity, sum)
+hist(sumdate2$steps,main="Frequency of Total Number of Steps Per Day",xlab="Steps")
+meansteps2<-aggregate(steps ~ date, noNAsactivity, mean)
+print(meansteps2)
+mediansteps2<-aggregate(steps ~ date, noNAsactivity, median)
+print(mediansteps2)
+diffmeans<-mean(meansteps$steps)-mean(meansteps2$steps)
+print(diffmeans)
+diffmedians<-mean(mediansteps$steps)-mean(mediansteps2$steps)
+print(diffmedians)
+##The new medians differ from the first part of the assignment
+##The mean didn't change but the median for the new data is greater than the old data.
+##Therefore, the impact of imputing missing data is that the values will change and the data can be skewed
+```
+
+Are there differences in Activity Patterns between Weekdays and Weekends?
+```{r , echo=TRUE}
+noNAsactivity$day<-weekdays(as.Date(noNAsactivity$date))
+
+for(i in 1:nrow(noNAsactivity)){
+  if (noNAsactivity$day[i]=="Sunday"){
+    noNAsactivity$day[i] <- "Weekend"
+  } 
+}
+for(i in 1:nrow(noNAsactivity)){
+  if (noNAsactivity$day[i]=="Monday"){
+    noNAsactivity$day[i] <- "Weekday"
+  } 
+}
+for(i in 1:nrow(noNAsactivity)){
+  if (noNAsactivity$day[i]=="Tuesday"){
+    noNAsactivity$day[i] <- "Weekday"
+  } 
+}
+for(i in 1:nrow(noNAsactivity)){
+  if (noNAsactivity$day[i]=="Wednesday"){
+    noNAsactivity$day[i] <- "Weekday"
+  } 
+}
+for(i in 1:nrow(noNAsactivity)){
+  if (noNAsactivity$day[i]=="Thursday"){
+    noNAsactivity$day[i] <- "Weekday"
+  } 
+}
+for(i in 1:nrow(noNAsactivity)){
+  if (noNAsactivity$day[i]=="Friday"){
+    noNAsactivity$day[i] <- "Weekday"
+  } 
+}
+for(i in 1:nrow(noNAsactivity)){
+  if (noNAsactivity$day[i]=="Saturday"){
+    noNAsactivity$day[i] <- "Weekend"
+  } 
+}
+noNAsactivity$day2<-weekdays(as.Date(noNAsactivity$date))
+AverageStepsPerIntervalWE<-aggregate(steps ~ interval, subset(noNAsactivity,day=="Weekend"), mean)
+AverageStepsPerIntervalWD<-aggregate(steps ~ interval, subset(noNAsactivity,day=="Weekday"), mean)
+AverageStepsPerIntervalWD$Day<-"Weekday"
+AverageStepsPerIntervalWE$Day<-"Weekend"
+AverageStepsBoth<-rbind(AverageStepsPerIntervalWD,AverageStepsPerIntervalWE)
+library(lattice)
+xyplot(steps ~ interval | Day, data=AverageStepsBoth,layout=c(1,2),type="l",xlab="Interval",ylab="Steps")
+```
+```
+
